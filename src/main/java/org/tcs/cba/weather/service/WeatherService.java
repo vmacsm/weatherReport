@@ -1,65 +1,68 @@
 package org.tcs.cba.weather.service;
 
-import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 
-import javax.annotation.PostConstruct;
-import javax.json.stream.JsonGenerationException;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.tcs.cba.weather.bo.ResponseWeatherData;
 import org.tcs.cba.weather.exception.DataNotFoundException;
-import org.tcs.cba.weather.model.ErrorMessage;
 import org.tcs.cba.weather.model.Weather;
-/*import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;*/
 import org.tcs.cba.weather.model.WeatherData;
-import org.tcs.cba.weather.model.WeatherDataList;
 
 public class WeatherService {
 	private Client client;
 	private WebTarget target;
+	private static List<String> cityList;
+	private static Map<String, String> countryMap;
+	ClassLoader objClassLoader = null;
+    Properties commonProperties = new Properties();
+    
+	final static Logger logger = Logger.getLogger(WeatherService.class);
+	
 	public WeatherService() {
 		// TODO Auto-generated constructor stub
 		init();
 	}
 	
-	final static Logger logger = Logger.getLogger(WeatherService.class);
+	
+	
 	protected void init(){
+		
+		objClassLoader = getClass().getClassLoader();
+		
 		client = ClientBuilder.newClient();
-		target = client.target("http://api.openweathermap.org/data/2.5/weather")
-					.queryParam("cnt", "10")
-					.queryParam("mode", "json")
-					.queryParam("units", "metric")
-					.queryParam("appid","b7a2ace7c8829235b419a5ab70d37b4c");
+		target = client.target(readKey("weather.properties", "openweathermap.uri"))
+					.queryParam(readKey("weather.properties", "queryparam.cnt"), 
+							readKey("weather.properties", "queryparam.cnt.value"))
+					.queryParam(readKey("weather.properties", "queryparam.mode"),
+							readKey("weather.properties", "queryparam.mode.value"))
+					.queryParam(readKey("weather.properties", "queryparam.units"),
+							readKey("weather.properties", "queryparam.units.value"))
+					.queryParam(readKey("weather.properties", "queryparam.appid"),
+							readKey("weather.properties", "queryparam.appid.value"));
+		
 		if(logger.isInfoEnabled())
 			logger.info(target);
+		
+		cityList = generateCityList();
+		countryMap = generateCountryMap();
+		
 	}
 	
 	/**
@@ -69,21 +72,6 @@ public class WeatherService {
 			
 			WeatherData weatherData = new WeatherData();
 			List<ResponseWeatherData> weatherDataList = new ArrayList<ResponseWeatherData>();
-			List<String> cityList = new ArrayList<String>();
-			
-			cityList.add("Chennai,in");
-			cityList.add("London,GB");
-			cityList.add("Melbourne,AU");
-			cityList.add("Adelaide,au");
-			cityList.add("Perth,au");
-			cityList.add("Bangalore,in");
-			cityList.add("Amsterdam,nl");
-			cityList.add("Zurich,ch");
-			cityList.add("NewYork,us");
-			cityList.add("dallas,us");
-			cityList.add("riodejaneiro,bl");
-			cityList.add("sanfrancisco,us");
-			cityList.add("capetown,za");
 			
 			if(logger.isInfoEnabled())
 				logger.info("City list details " +cityList);
@@ -177,20 +165,7 @@ public class WeatherService {
 	}
 	
 	private String getTimeZone(String country, String city){
-		Map<String, String> countryMap = new HashMap<String, String>();
 		
-		countryMap.put("Adelaide", "ACST");
-		countryMap.put("Perth", "AWST");
-		countryMap.put("Melbourne", "AEST");
-		countryMap.put("IN", "IST");
-		countryMap.put("GB", "GMT");
-		countryMap.put("Dallas", "CDT");
-		countryMap.put("New York", "EDT");
-		countryMap.put("San Francisco", "PDT");
-		countryMap.put("NL", "CEST");
-		countryMap.put("CH", "CEST");
-		countryMap.put("BR", "BRT");
-		countryMap.put("ZA", "SAST"); 
 		
 		if(country.equals("US") || country.equals("AU")) {
 			country = city;
@@ -221,4 +196,79 @@ public class WeatherService {
 		responseWeatherData.setCity(city);
 		return responseWeatherData;
 	}
+	
+	private List<String> generateCityList(){
+		
+		List<String> cityList = new ArrayList<String>();
+		
+		cityList.add("Chennai,in");
+		cityList.add("London,GB");
+		cityList.add("Melbourne,AU");
+		cityList.add("Adelaide,au");
+		cityList.add("Perth,au");
+		cityList.add("Bangalore,in");
+		cityList.add("Amsterdam,nl");
+		cityList.add("Zurich,ch");
+		cityList.add("NewYork,us");
+		cityList.add("dallas,us");
+		cityList.add("riodejaneiro,bl");
+		cityList.add("sanfrancisco,us");
+		cityList.add("capetown,za");
+		
+		return cityList;
+		
+	}
+	
+	private Map<String, String> generateCountryMap(){
+		
+		Map<String, String> countryMap = new HashMap<String, String>();
+		
+		countryMap.put("Adelaide", "ACST");
+		countryMap.put("Perth", "AWST");
+		countryMap.put("Melbourne", "AEST");
+		countryMap.put("IN", "IST");
+		countryMap.put("GB", "GMT");
+		countryMap.put("Dallas", "CDT");
+		countryMap.put("New York", "EDT");
+		countryMap.put("San Francisco", "PDT");
+		countryMap.put("NL", "CEST");
+		countryMap.put("CH", "CEST");
+		countryMap.put("BR", "BRT");
+		countryMap.put("ZA", "SAST"); 
+		return countryMap;
+		
+	}
+	
+	public String readKey(String propertiesFilename, String key){
+        /* Simple validation */
+        if (propertiesFilename != null && !propertiesFilename.trim().isEmpty()
+                && key != null && !key.trim().isEmpty()) {
+            /* Create an object of FileInputStream */
+            FileInputStream objFileInputStream = null;
+            
+            
+            try {
+                /* Read file from resources folder */
+                objFileInputStream = new FileInputStream(objClassLoader.getResource(propertiesFilename).getFile());
+                /* Load file into commonProperties */
+                commonProperties.load(objFileInputStream);
+                /* Get the value of key */
+                return String.valueOf(commonProperties.get(key));
+            } catch (FileNotFoundException ex) {
+                ex.printStackTrace();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }finally{
+                /* Close the resource */
+                if(objFileInputStream != null){
+                    try {
+                        objFileInputStream.close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }
