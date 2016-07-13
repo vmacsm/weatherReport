@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.TimeZone;
 
 import javax.ws.rs.NotFoundException;
@@ -201,19 +202,10 @@ public class WeatherService {
 		
 		List<String> cityList = new ArrayList<String>();
 		
-		cityList.add("Chennai,in");
-		cityList.add("London,GB");
-		cityList.add("Melbourne,AU");
-		cityList.add("Adelaide,au");
-		cityList.add("Perth,au");
-		cityList.add("Bangalore,in");
-		cityList.add("Amsterdam,nl");
-		cityList.add("Zurich,ch");
-		cityList.add("NewYork,us");
-		cityList.add("dallas,us");
-		cityList.add("riodejaneiro,bl");
-		cityList.add("sanfrancisco,us");
-		cityList.add("capetown,za");
+		StringTokenizer cityToken = new StringTokenizer(readKey("weather.properties", "city.list"), "|");
+		while (cityToken.hasMoreTokens()) {
+			cityList.add(cityToken.nextToken());
+		}
 		
 		return cityList;
 		
@@ -239,7 +231,7 @@ public class WeatherService {
 		
 	}
 	
-	public String readKey(String propertiesFilename, String key){
+	private String readKey(String propertiesFilename, String key){
         /* Simple validation */
         if (propertiesFilename != null && !propertiesFilename.trim().isEmpty()
                 && key != null && !key.trim().isEmpty()) {
